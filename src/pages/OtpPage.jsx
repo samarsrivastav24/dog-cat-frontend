@@ -7,8 +7,9 @@ function OtpPage() {
 
   async function handleVerify() {
     const email = localStorage.getItem("email");
+    const otpValue = otp.trim();
 
-    if (!otp) {
+    if (!otpValue) {
       alert("Please enter OTP");
       return;
     }
@@ -19,10 +20,14 @@ function OtpPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({ email, otp: otpValue }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "Wrong OTP");
+      }
 
       if (data.success) {
         // ✅ Set login flag
@@ -30,12 +35,10 @@ function OtpPage() {
 
         // ✅ Redirect to first protected page
         navigate("/select-animal");
-      } else {
-        alert("Wrong OTP ❌");
       }
     } catch (error) {
       console.error(error);
-      alert("Server error");
+      alert(error?.message || "Server error");
     }
   }
 
