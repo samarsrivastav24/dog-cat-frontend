@@ -3,27 +3,41 @@ import { useNavigate } from "react-router-dom";
 
 function LoginPage() {
   const [email, setEmail] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const navigate = useNavigate();
 
   async function handleSendOtp(e) {
     e.preventDefault();
+    if (isSending) return;
 
-    const res = await fetch("https://dog-cat-translator.onrender.com", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email }),
-    });
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      alert("Please enter email");
+      return;
+    }
 
-    const data = await res.json();
+    try {
+      setIsSending(true);
+      const res = await fetch("https://dog-cat-translator.onrender.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
 
-    if (data.success) {
-      alert("OTP sent to your email");
-      localStorage.setItem("email", email);
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || `Failed to send OTP (HTTP ${res.status})`);
+      }
+
+      localStorage.setItem("email", normalizedEmail);
       navigate("/otp");
-    } else {
-      alert("Failed to send OTP");
+    } catch (err) {
+      alert(err?.message || "Failed to send OTP");
+    } finally {
+      setIsSending(false);
     }
   }
 
@@ -40,7 +54,9 @@ function LoginPage() {
           required
         />
 
-        <button type="submit">Send OTP</button>
+        <button type="submit" disabled={isSending}>
+          {isSending ? "Sending..." : "Send OTP"}
+        </button>
       </form>
     </div>
   );
